@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Holiday Memory Grid</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        background-color: #f5f5f5;
+        padding: 20px;
+    }
+    h1 {
+        margin-bottom: 10px;
+    }
+    #scoreboard {
+        margin-bottom: 20px;
+    }
+    #grid {
+        display: grid;
+        grid-template-columns: repeat(4, 80px);
+        grid-gap: 10px;
+    }
+    .card {
+        width: 80px;
+        height: 80px;
+        background-color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 40px;
+        cursor: pointer;
+        border-radius: 10px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        transition: transform 0.3s;
+    }
+    .card.revealed {
+        background-color: #ffd700;
+        transform: rotateY(180deg);
+    }
+    .card.matched {
+        background-color: #90ee90;
+        cursor: default;
+    }
+</style>
+</head>
+<body>
+<h1>Holiday Memory Grid</h1>
+<div id="scoreboard">
+    <span>Time: <span id="timer">0</span>s</span> | 
+    <span>Score: <span id="score">0</span></span>
+</div>
+<div id="grid"></div>
+<script>
+const symbols = ['🎄','❄️','🎁','🍬','⭐','🦌','🕎','🕯️','🎃','☃️','🌟','🔔','🧦','🍭','🎉','🥧'];
+let gridSymbols = [];
+let revealed = [];
+let matched = [];
+let score = 0;
+let time = 0;
+let timerInterval;
+
+function shuffle(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
+}
+
+function startGame() {
+    gridSymbols = shuffle([...symbols, ...symbols]); // 16 pairs for 4x4 grid
+    const grid = document.getElementById('grid');
+    grid.innerHTML = '';
+    gridSymbols.forEach((symbol, index) => {
+        const card = document.createElement('div');
+        card.classList.add('card');
+        card.dataset.index = index;
+        card.innerText = symbol;
+        grid.appendChild(card);
+    });
+
+    // Reveal briefly
+    setTimeout(() => {
+        document.querySelectorAll('.card').forEach(card => card.innerText = '');
+    }, 3000);
+
+    // Start timer
+    time = 0;
+    document.getElementById('timer').innerText = time;
+    clearInterval(timerInterval);
+    timerInterval = setInterval(() => {
+        time++;
+        document.getElementById('timer').innerText = time;
+    }, 1000);
+}
+
+function handleCardClick(e) {
+    const card = e.target;
+    const index = card.dataset.index;
+    if (revealed.includes(index) || matched.includes(index)) return;
+
+    card.innerText = gridSymbols[index];
+    revealed.push(index);
+    card.classList.add('revealed');
+
+    if (revealed.length === 2) {
+        const first = revealed[0];
+        const second = revealed[1];
+        if (gridSymbols[first] === gridSymbols[second]) {
+            matched.push(first, second);
+            score += 10;
+            revealed = [];
+            checkWin();
+        } else {
+            score -= 2;
+            setTimeout(() => {
+                document.querySelector(`.card[data-index='${first}']`).innerText = '';
+                document.querySelector(`.card[data-index='${second}']`).innerText = '';
+                document.querySelector(`.card[data-index='${first}']`).classList.remove('revealed');
+                document.querySelector(`.card[data-index='${second}']`).classList.remove('revealed');
+                revealed = [];
+            }, 1000);
+        }
+        document.getElementById('score').innerText = score;
+    }
+}
+
+function checkWin() {
+    if (matched.length === gridSymbols.length) {
+        clearInterval(timerInterval);
+        let speedBonus = 0;
+        if(time < 60) speedBonus = 20;
+        else if(time < 120) speedBonus = 10;
+        score += speedBonus;
+        document.getElementById('score').innerText = score;
+        alert(`You won! Final Score: ${score}`);
+    }
+}
+
+document.getElementById('grid').addEventListener('click', handleCardClick);
+startGame();
+</script>
+</body>
+</html>
